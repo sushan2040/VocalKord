@@ -60,7 +60,7 @@ pipeline {
             }
             steps {
                 sh '''
-                docker build -t vocalkord-backend:latest ./E-Commerce
+                docker build -t vocalkord-backend:latest ./backend
                     docker build -t vocalkord-frontend:latest ./frontend
                     docker network create vocalkord-network || true
                     docker stop vocalkord-backend vocalkord-frontend || true

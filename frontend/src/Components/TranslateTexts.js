@@ -2,41 +2,41 @@ import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "../Sidebar";
 
-export default function TranslateText(){
-   const appURL="http://localhost:8080";
-  const toBeTranslateText=useRef("");
-  const [translatedText,setTranslatedText]=useState("");
-  const [isLoading,setIsLoading]=useState(false);
-  const [languages,setLanguages]=useState([]);
-  const [fromLanguage,setFromLanguage]=useState("");
-  const [toLanguage,setToLanguage]=useState("");
-  function translateText(){
+export default function TranslateText() {
+  const appURL = "http://localhost:8082";
+  const toBeTranslateText = useRef("");
+  const [translatedText, setTranslatedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [languages, setLanguages] = useState([]);
+  const [fromLanguage, setFromLanguage] = useState("");
+  const [toLanguage, setToLanguage] = useState("");
+  function translateText() {
     setIsLoading(true);
-    var text=toBeTranslateText.current.value;
-    axios.post(appURL+"/api/translate",{},{
-      params:{
-        text:text,
-        fromLanguage:fromLanguage,
-        toLanguage:toLanguage
+    var text = toBeTranslateText.current.value;
+    axios.post(appURL + "/api/translate", {}, {
+      params: {
+        text: text,
+        fromLanguage: fromLanguage,
+        toLanguage: toLanguage
       },
-    }).then((result)=>{
+    }).then((result) => {
       setIsLoading(false);
       console.log(result.data);
       setTranslatedText(result.data);
-    }).catch((e)=>{
+    }).catch((e) => {
       console.log(e);
     })
   }
-  function getLanguages(){
-    axios.get(appURL+"/api/get-languages")
-    .then((result)=>{
-     setLanguages(result.data);
-    })
+  function getLanguages() {
+    axios.get(appURL + "/api/get-languages")
+      .then((result) => {
+        setLanguages(result.data);
+      })
   }
-  function downloadModels(){
-    axios.get(appURL+"/api/download-models");
+  function downloadModels() {
+    axios.get(appURL + "/api/download-models");
   }
-  useEffect(()=>{
+  useEffect(() => {
     getLanguages();
   })
   return (
@@ -49,46 +49,46 @@ export default function TranslateText(){
       <div className='row'>
         <div className='col-lg-12'>
           <div className='card card-body'>
-            <div className='row' style={{alignItems:'center'}}>
+            <div className='row' style={{ alignItems: 'center' }}>
               <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded'>
-               <div className=''>
-                <label>From Language</label>
-                 <div className=''>
-               <select className='form-control mt-2 mb-2' value={fromLanguage} onChange={(e)=>setFromLanguage(e.target.value)}>
-                <option value="0">--Please select--</option>
-                {Object.entries(languages).map(([code, name]) => (
-    <option key={code} value={code}>
-      {name}
-    </option>
-  ))}
-               </select>
-               </div>
-              </div> 
-               <textarea style={{width:'100%'}} rows="15" ref={toBeTranslateText} placeholder='Add text for translation'></textarea>
+                <div className=''>
+                  <label>From Language</label>
+                  <div className=''>
+                    <select className='form-control mt-2 mb-2' value={fromLanguage} onChange={(e) => setFromLanguage(e.target.value)}>
+                      <option value="0">--Please select--</option>
+                      {Object.entries(languages).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <textarea style={{ width: '100%' }} rows="15" ref={toBeTranslateText} placeholder='Add text for translation'></textarea>
               </div>
               <div className='col-sm-2 mb-2 mt-2'>
                 <a className='btn btn-primary' onClick={downloadModels}>Download</a>
                 {!isLoading ? <a className='btn btn-primary' onClick={translateText}>Exchange</a>
-                :<button className="btn btn-primary" type="button" disabled>
-  <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
-  Loading...
-</button>}
+                  : <button className="btn btn-primary" type="button" disabled>
+                    <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                    Loading...
+                  </button>}
               </div>
-            <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded' >
-              <div className=''>
-                <label>To Language</label>
+              <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded' >
                 <div className=''>
-                <select className='form-control mt-2 mb-2' value={toLanguage} onChange={(e)=>setToLanguage(e.target.value)}>
-                <option value="0">--Please select--</option>
-                {Object.entries(languages).map(([code, name]) => (
-    <option key={code} value={code}>
-      {name}
-    </option>
-  ))}
-               </select>
-               </div>
-               </div>
-               <textarea style={{width:'100%'}} rows="15" placeholder='Translated text' value={translatedText}></textarea>
+                  <label>To Language</label>
+                  <div className=''>
+                    <select className='form-control mt-2 mb-2' value={toLanguage} onChange={(e) => setToLanguage(e.target.value)}>
+                      <option value="0">--Please select--</option>
+                      {Object.entries(languages).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <textarea style={{ width: '100%' }} rows="15" placeholder='Translated text' value={translatedText}></textarea>
               </div>
             </div>
           </div>

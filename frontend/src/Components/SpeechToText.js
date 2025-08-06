@@ -3,15 +3,15 @@ import '../App.css';
 import Sidebar from '../Sidebar';
 import axios from 'axios';
 
- export default function SpeechToText() {
-  const appURL="http://localhost:8080";
-  const toBeTranslateText=useRef("");
-  const [translatedText,setTranslatedText]=useState("");
-  const [isLoading,setIsLoading]=useState(false);
-  const [languages,setLanguages]=useState([]);
-  const [fromLanguage,setFromLanguage]=useState("");
-  const [toLanguage,setToLanguage]=useState("");
-  const [fileToBeTranslated,setFileToBeTranslated]=useState(null);
+export default function SpeechToText() {
+  const appURL = "http://localhost:8082";
+  const toBeTranslateText = useRef("");
+  const [translatedText, setTranslatedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [languages, setLanguages] = useState([]);
+  const [fromLanguage, setFromLanguage] = useState("");
+  const [toLanguage, setToLanguage] = useState("");
+  const [fileToBeTranslated, setFileToBeTranslated] = useState(null);
 
 
   const [recording, setRecording] = useState(false);
@@ -32,12 +32,12 @@ import axios from 'axios';
       // Send audioBlob to backend
       const formData = new FormData();
       formData.append('file', audioBlob, 'recording.webm');
-    formData.append('fromLanguage',fromLanguage);
-      axios.post(appURL+'/api/transcribe',formData,{
-        headers:{
-            "Content-Type": 'multipart/form-data',
+      formData.append('fromLanguage', fromLanguage);
+      axios.post(appURL + '/api/transcribe', formData, {
+        headers: {
+          "Content-Type": 'multipart/form-data',
         }
-      }).then((result)=>{
+      }).then((result) => {
         console.log(result.data.results.transcripts[0].transcript);
         setTranslatedText(result.data.results.transcripts[0].transcript);
       });
@@ -51,14 +51,14 @@ import axios from 'axios';
     setRecording(false);
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     getLanguages();
-  },[])
-function getLanguages(){
-    axios.get(appURL+"/api/get-languages")
-    .then((result)=>{
-     setLanguages(result.data);
-    })
+  }, [])
+  function getLanguages() {
+    axios.get(appURL + "/api/get-languages")
+      .then((result) => {
+        setLanguages(result.data);
+      })
   }
   return (
     <div className="App" id="outer-container">
@@ -70,54 +70,54 @@ function getLanguages(){
       <div className='row'>
         <div className='col-lg-12'>
           <div className='card card-body'>
-            <div className='row' style={{alignItems:'center'}}>
+            <div className='row' style={{ alignItems: 'center' }}>
               <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded'>
-               <div className=''>
-                <label>From Language</label>
                 <div className=''>
-                <select className='form-control mt-2 mb-2' value={fromLanguage} onChange={(e)=>setFromLanguage(e.target.value)}>
-                <option value="0">--Please select--</option>
-                {Object.entries(languages).map(([code, name]) => (
-    <option key={code} value={code}>
-      {name}
-    </option>
-  ))}
-               </select>
-               </div>
-                <div>
-      <button className='btn btn-danger' onClick={recording ? stopRecording : startRecording}>
-        {recording ? 'Stop' : 'Start'} Recording
-      </button>
-      {audioURL && <audio controls src={audioURL} />}
-    </div>
-               <div className='mb-2 mt-2'>
+                  <label>From Language</label>
+                  <div className=''>
+                    <select className='form-control mt-2 mb-2' value={fromLanguage} onChange={(e) => setFromLanguage(e.target.value)}>
+                      <option value="0">--Please select--</option>
+                      {Object.entries(languages).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <button className='btn btn-danger' onClick={recording ? stopRecording : startRecording}>
+                      {recording ? 'Stop' : 'Start'} Recording
+                    </button>
+                    {audioURL && <audio controls src={audioURL} />}
+                  </div>
+                  <div className='mb-2 mt-2'>
                     <label>Upload Documents</label>
                     <div className=''>
-                         <input onChange={(e)=>setFileToBeTranslated(e.target.files[0])} type='file' placeholder='Upload file'/>
+                      <input onChange={(e) => setFileToBeTranslated(e.target.files[0])} type='file' placeholder='Upload file' />
                     </div>
-               </div>
-              </div> 
+                  </div>
                 </div>
-              <div className='col-sm-2 mb-2 mt-2'>
-               
               </div>
-            <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded' >
-              <div className=''>
-                <label>To Language</label>
+              <div className='col-sm-2 mb-2 mt-2'>
+
+              </div>
+              <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded' >
                 <div className=''>
-                <select className='form-control mt-2 mb-2' value={toLanguage} onChange={(e)=>setToLanguage(e.target.value)}>
-                <option value="0">--Please select--</option>
-                {Object.entries(languages).map(([code, name]) => (
-    <option key={code} value={code}>
-      {name}
-    </option>
-  ))}
-               </select>
-               </div>
-               <textarea style={{width:'100%'}} rows="10" placeholder='Translated text' value={translatedText}></textarea>
-             
-               </div>
-               </div>
+                  <label>To Language</label>
+                  <div className=''>
+                    <select className='form-control mt-2 mb-2' value={toLanguage} onChange={(e) => setToLanguage(e.target.value)}>
+                      <option value="0">--Please select--</option>
+                      {Object.entries(languages).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea style={{ width: '100%' }} rows="10" placeholder='Translated text' value={translatedText}></textarea>
+
+                </div>
+              </div>
             </div>
           </div>
         </div>

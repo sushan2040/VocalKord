@@ -48,7 +48,7 @@ public class App extends SpringBootServletInitializer
 		}
 		@Bean
 	    public TranscribeClient transcribeClient() {
-			AwsCredentials awsCredentials = AwsBasicCredentials.create(environment.getProperty("aws.accessKeyId"),environment.getProperty("aws.secretAccessKey"));
+			AwsCredentials awsCredentials = AwsBasicCredentials.create(environment.getProperty("vocalKord.aws.accessKeyId"),environment.getProperty("vocalKord.aws.secretAccessKey"));
 	        return TranscribeClient.builder()
 	        		.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
 	                .region(Region.US_WEST_2) // Change this to your AWS region
@@ -57,7 +57,7 @@ public class App extends SpringBootServletInitializer
 
 	    @Bean
 	    public S3Client s3Client() {
-	    	AwsCredentials awsCredentials = AwsBasicCredentials.create(environment.getProperty("aws.accessKeyId"),environment.getProperty("aws.secretAccessKey"));
+	    	AwsCredentials awsCredentials = AwsBasicCredentials.create(environment.getProperty("vocalKord.aws.accessKeyId"),environment.getProperty("vocalKord.aws.secretAccessKey"));
 	        return S3Client.builder()
 	        		.credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
 	                .region(Region.US_WEST_2) // Same region as your S3 bucket

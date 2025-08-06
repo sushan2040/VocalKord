@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        AWS_S3_ACCESS_KEY=credentials('aws.s3.accessKey')
-        AWS_S3_SECRET_ACCESS_KEY=credentials('aws.s3.secretKey')
+        AWS_S3_ACCESS_KEY=credentials('vocalKord.aws.accessKey')
+        AWS_S3_SECRET_ACCESS_KEY=credentials('vocalKord.aws.secretKey')
     }
     stages {
         stage('Switch to Root and Prepare Workspace') {
@@ -65,25 +65,27 @@ pipeline {
                     docker network create vocalkord-network || true
                     docker stop vocalkord-backend vocalkord-frontend || true
                     docker rm vocalkord-backend vocalkord-frontend || true
-                    docker run -d --name vocalkord-backend --network vocalkord-network -p 8081:8081 \
+                    docker run -d --name vocalkord-backend --network vocalkord-network -p 8082:8082 \
+                    -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
+                        -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
                         vocalkord-backend:latest
-                    docker run -d --name vocalkord-frontend --network vocalkord-network -p 80:80 \
+                    docker run -d --name vocalkord-frontend --network vocalkord-network -p 90:90 \
                         vocalkord-frontend:latest
                     sleep 10
                      # Check backend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' vocalkord-backend)" = "true" ] && \
-                       docker inspect --format '{{.NetworkSettings.Ports}}' vocalkord-backend | grep -q "8081"; then
+                       docker inspect --format '{{.NetworkSettings.Ports}}' vocalkord-backend | grep -q "8082"; then
                         echo "Backend deployment successful!"
                     else
-                        echo "Backend failed to start or port 8081 not mapped"
+                        echo "Backend failed to start or port 8082 not mapped"
                         exit 1
                     fi
                     # Check frontend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' vocalkord-frontend)" = "true" ] && \
-                       docker inspect --format '{{.NetworkSettings.Ports}}' vocalkord-frontend | grep -q "80"; then
+                       docker inspect --format '{{.NetworkSettings.Ports}}' vocalkord-frontend | grep -q "90"; then
                         echo "Frontend deployment successful!"
                     else
-                        echo "Frontend failed to start or port 80 not mapped"
+                        echo "Frontend failed to start or port 90 not mapped"
                         exit 1
                     fi
                 '''
@@ -93,12 +95,12 @@ pipeline {
     post {
         always {
             sh '''
-                sudo -n rm -rf E-Commerce ecommerce || true
-                echo "Cleaned up E-Commerce and ecommerce folders."
+                sudo -n rm -rf backend frontend || true
+                echo "Cleaned up backend and frontend folders."
             '''
         }
         success {
-            archiveArtifacts artifacts: 'E-Commerce/target/*.jar', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'backend/target/*.jar', allowEmptyArchive: true
             echo "Build and deployment successful. Folders already cleaned."
         }
         failure {

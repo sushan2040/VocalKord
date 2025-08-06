@@ -67,7 +67,7 @@ pipeline {
                     docker rm vocalkord-backend vocalkord-frontend || true
                     docker run -d --name vocalkord-backend --network vocalkord-network -p 8082:8082 \
                     -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
-                        -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
+                    -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
                         vocalkord-backend:latest
                     docker run -d --name vocalkord-frontend --network vocalkord-network -p 90:90 \
                         vocalkord-frontend:latest

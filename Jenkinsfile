@@ -3,6 +3,7 @@ pipeline {
     environment {
         AWS_S3_ACCESS_KEY=credentials('vocalKord.aws.accessKeyId')
         AWS_S3_SECRET_ACCESS_KEY=credentials('vocalKord.aws.secretAccessKey')
+        SERVER_PORT=8082
         
     }
     stages {
@@ -67,7 +68,7 @@ pipeline {
                     docker stop vocalkord-backend vocalkord-frontend || true
                     docker rm vocalkord-backend vocalkord-frontend || true
                     docker run -d --name vocalkord-backend --network vocalkord-network -p 8082:8082 \
-                    -e SERVER_PORT="8082"
+                    -e SERVER_PORT="$SERVER_PORT" \
                         vocalkord-backend:latest
                     docker run -d --name vocalkord-frontend --network vocalkord-network -p 90:90 \
                         vocalkord-frontend:latest

@@ -72,7 +72,7 @@ pipeline {
                         vocalkord-backend:latest
                     docker run -d --name vocalkord-frontend --network vocalkord-network -p 90:90 \
                         vocalkord-frontend:latest
-                    sleep 20
+                    sleep 700
                      # Check backend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' vocalkord-backend)" = "true" ] && \
                        docker inspect --format '{{.NetworkSettings.Ports}}' vocalkord-backend | grep -q "8082"; then

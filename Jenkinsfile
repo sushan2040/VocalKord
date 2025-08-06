@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        AWS_S3_ACCESS_KEY=credentials('vocalKord.aws.accessKey')
+        AWS_S3_ACCESS_KEY=credentials('vocalKord.aws.accessKeyId')
         AWS_S3_SECRET_ACCESS_KEY=credentials('vocalKord.aws.secretKey')
     }
     stages {

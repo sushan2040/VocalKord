@@ -95,12 +95,12 @@ pipeline {
     post {
         always {
             sh '''
-                sudo -n rm -rf backend frontend || true
-                echo "Cleaned up backend and frontend folders."
+                sudo -n rm -rf E-Commerce ecommerce || true
+                echo "Cleaned up E-Commerce and ecommerce folders."
             '''
         }
         success {
-            archiveArtifacts artifacts: 'backend/target/*.jar', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'E-Commerce/target/*.jar', allowEmptyArchive: true
             echo "Build and deployment successful. Folders already cleaned."
         }
         failure {

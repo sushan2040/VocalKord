@@ -5,4 +5,4 @@ RUN rm -rf /usr/share/nginx/html/vocalkord/*
 COPY build/ /usr/share/nginx/html/vocalkord
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 90
+EXPOSE 80

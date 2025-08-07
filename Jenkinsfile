@@ -73,7 +73,7 @@ pipeline {
                         backend:latest
                     docker run -d --name frontend --network frontend-network -p 3000:80 \
                         frontend:latest
-                    sleep 10
+                    sleep 700
                      # Check backend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' backend)" = "true" ] && \
                        docker inspect --format '{{.NetworkSettings.Ports}}' backend | grep -q "8082"; then

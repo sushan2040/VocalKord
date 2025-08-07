@@ -5,12 +5,16 @@ pipeline {
         SERVER_PORT = '8082'
     }
     stages {
-        stage('Prepare Workspace') {
+        stage('Switch to Root and Prepare Workspace') {
             steps {
                 sh '''
-                    whoami
-                    chown -R $(whoami):$(whoami) . || { echo "Failed to change ownership"; exit 1; }
-                    chmod -R u+w . || { echo "Failed to change permissions"; exit 1; }
+                    if ! command -v sudo >/dev/null 2>&1; then
+                        echo "sudo not found, please ensure it is installed"
+                        exit 1
+                    fi
+                    sudo -n whoami | grep -q root || { echo "Failed to switch to root; ensure passwordless sudo is configured for Jenkins user"; exit 1; }
+                    sudo -n chown -R $(whoami):$(whoami) . || true
+                    sudo -n chmod -R u+w .
                 '''
             }
         }

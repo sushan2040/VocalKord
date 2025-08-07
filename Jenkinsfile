@@ -3,6 +3,7 @@ pipeline {
     environment {
         AWS_S3_ACCESS_KEY=credentials('aws.s3.accessKey')
         AWS_S3_SECRET_ACCESS_KEY=credentials('aws.s3.secretKey')
+        SERVER_PORT=credentials('vocalkord.server.port')
     }
     stages {
         stage('Switch to Root and Prepare Workspace') {

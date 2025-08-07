@@ -71,7 +71,7 @@ pipeline {
                         -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
                         -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
                         backend:latest
-                    docker run -d --name frontend --network frontend-network -p 80:80 \
+                    docker run -d --name frontend --network frontend-network -p 90:90 \
                         frontend:latest
                     sleep 10
                      # Check backend deployment
@@ -84,10 +84,10 @@ pipeline {
                     fi
                     # Check frontend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' frontend)" = "true" ] && \
-                       docker inspect --format '{{.NetworkSettings.Ports}}' frontend | grep -q "80"; then
+                       docker inspect --format '{{.NetworkSettings.Ports}}' frontend | grep -q "90"; then
                         echo "Frontend deployment successful!"
                     else
-                        echo "Frontend failed to start or port 80 not mapped"
+                        echo "Frontend failed to start or port 90 not mapped"
                         exit 1
                     fi
                 '''

@@ -71,7 +71,7 @@ pipeline {
                         -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
                         -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
                         backend:latest
-                    docker run -d --name frontend --network frontend-network -p 90:80 \
+                    docker run -d --name frontend --network frontend-network -p 3000:80 \
                         frontend:latest
                     sleep 10
                      # Check backend deployment

@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Checkout SCM') {
             steps {
-                git url: 'https://github.com/sushan2040/backend-Complete.git', branch: 'main'
+                git url: 'https://github.com/sushan2040/VocalKord.git', branch: 'main'
             }
         }
         stage('Build') {

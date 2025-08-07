@@ -76,10 +76,10 @@ pipeline {
                     sleep 10
                      # Check backend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' backend)" = "true" ] && \
-                       docker inspect --format '{{.NetworkSettings.Ports}}' backend | grep -q "8081"; then
+                       docker inspect --format '{{.NetworkSettings.Ports}}' backend | grep -q "8082"; then
                         echo "Backend deployment successful!"
                     else
-                        echo "Backend failed to start or port 8081 not mapped"
+                        echo "Backend failed to start or port 8082 not mapped"
                         exit 1
                     fi
                     # Check frontend deployment

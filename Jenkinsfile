@@ -35,7 +35,14 @@ pipeline {
                         sh '''
                             set -e
                             cd frontend
-                            npm install --legacy-peer-deps
+                            npm config set cache .npm-cache
+                        
+                        # Clean up node_modules and package-lock.json
+                        rm -rf node_modules package-lock.json
+                        
+                        # Clear npm cache
+                        npm cache clean --force
+                            npm install --legacy-peer-deps --no-optional
                             npm run build || { echo "Frontend build failed"; exit 1; }
                             [ -d "./build" ] || { echo "Error: Build directory not found!"; exit 1; }
                         '''

@@ -3,6 +3,7 @@ package language.detector.service.impl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import language.detector.service.TranslationService;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;

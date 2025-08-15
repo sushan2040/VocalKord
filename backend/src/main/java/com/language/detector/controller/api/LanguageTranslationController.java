@@ -212,8 +212,8 @@ public class LanguageTranslationController {
             @RequestParam("toLanguage") String toLanguage,
             HttpServletRequest request) {
         if (!canTranslate(request)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(("Daily translation limit of " + DAILY_TRANSLATION_LIMIT + " reached.").getBytes());
+             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Daily translation limit of " + DAILY_TRANSLATION_LIMIT + " reached.");
         }
 
         String originalFilename = file.getOriginalFilename();

@@ -56,6 +56,8 @@ export default function SpeechToText() {
       }).then((result) => {
         console.log(result.data.results.transcripts[0].transcript);
         setTranslatedText(result.data.results.transcripts[0].transcript);
+      }).then((e) => {
+        toast.error(e.response.data);
       });
     };
     mediaRecorderRef.current.start();

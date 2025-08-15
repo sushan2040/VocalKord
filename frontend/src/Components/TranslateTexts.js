@@ -61,7 +61,7 @@ export default function TranslateText() {
       console.log(result.data);
       setTranslatedText(result.data);
     }).catch((e) => {
-      console.log(e);
+      toast.error(e.response.data);
     })
   }
   function getLanguages() {

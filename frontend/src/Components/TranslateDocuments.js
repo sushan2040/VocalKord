@@ -108,8 +108,8 @@ function TranslateDocuments() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    }).catch((error) => {
-      console.log("Error:", error);
+    }).catch((e) => {
+      toast.error(e.response.data);
     });
   }
 

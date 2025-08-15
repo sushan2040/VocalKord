@@ -62,8 +62,8 @@ pipeline {
             }
             steps {
                 sh '''
-                docker build -t backend:latest ./backend
-                    docker build -t frontend:latest  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL" ./frontend
+                docker build --no-cache -t backend:latest ./backend
+                    docker build --no-cache -t frontend:latest  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL" ./frontend
                     docker network create vocalkord-frontend-network || true
                     docker stop backend frontend || true
                     docker rm backend frontend || true

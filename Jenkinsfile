@@ -4,6 +4,7 @@ pipeline {
         AWS_S3_ACCESS_KEY=credentials('aws.s3.accessKey')
         AWS_S3_SECRET_ACCESS_KEY=credentials('aws.s3.secretKey')
         SERVER_PORT=credentials('vocalkord.server.port')
+         REACT_APP_API_URL=credentials('vocalkord-api-url')
     }
     stages {
         stage('Switch to Root and Prepare Workspace') {
@@ -62,7 +63,7 @@ pipeline {
             steps {
                 sh '''
                 docker build -t backend:latest ./backend
-                    docker build -t frontend:latest ./frontend
+                    docker build -t frontend:latest  --build-arg REACT_APP_API_URL="$REACT_APP_API_URL" ./frontend
                     docker network create vocalkord-frontend-network || true
                     docker stop backend frontend || true
                     docker rm backend frontend || true

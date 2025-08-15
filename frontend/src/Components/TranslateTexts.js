@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "../Sidebar";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function TranslateText() {
   const appURL = process.env.REACT_APP_API_URL;
@@ -8,9 +9,45 @@ export default function TranslateText() {
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [languages, setLanguages] = useState([]);
+  const [errors, setErrors] = useState({});
   const [fromLanguage, setFromLanguage] = useState("");
   const [toLanguage, setToLanguage] = useState("");
+
+  var validattionErrors = {
+    fromLanguageError: "",
+    toLanguageError: "",
+    text: ""
+  }
+
   function translateText() {
+    if (fromLanguage == "") {
+      validattionErrors.fromLanguageError = "Please select";
+      setErrors(validattionErrors);
+      toast.error("Please select from language!");
+      return;
+    } else {
+      validattionErrors.fromLanguageError = null;
+      setErrors(validattionErrors);
+    }
+    if (toLanguage == "") {
+      validattionErrors.toLanguageError = "Please select";
+      setErrors(validattionErrors);
+      toast.error("Please select to language!");
+      return;
+    } else {
+      validattionErrors.toLanguageError = null;
+      setErrors(validattionErrors);
+    }
+    if (toBeTranslateText.current.value == "") {
+      validattionErrors.text = "This field is required!";
+      setErrors(validattionErrors);
+      toast.error("Please write something in the text box!");
+      return;
+    } else {
+      validattionErrors.text = null;
+      setErrors(validattionErrors);
+    }
+
     setIsLoading(true);
     var text = toBeTranslateText.current.value;
     axios.post(appURL + "/api/translate", {}, {
@@ -63,11 +100,13 @@ export default function TranslateText() {
                       ))}
                     </select>
                   </div>
+                  {errors.fromLanguageError && <span className="error">{errors.fromLanguageError}</span>}
                 </div>
                 <textarea style={{ width: '100%' }} rows="15" ref={toBeTranslateText} placeholder='Add text for translation'></textarea>
+                {errors.text && <span className="error">{errors.text}</span>}
               </div>
               <div className='col-sm-2 mb-2 mt-2'>
-                <a className='btn btn-primary' onClick={downloadModels}>Download</a>
+
                 {!isLoading ? <a className='btn btn-primary' onClick={translateText}>Exchange</a>
                   : <button className="btn btn-primary" type="button" disabled>
                     <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
@@ -87,6 +126,8 @@ export default function TranslateText() {
                       ))}
                     </select>
                   </div>
+                  {errors.toLanguageError && <span className="error">{errors.toLanguageError}</span>}
+
                 </div>
                 <textarea style={{ width: '100%' }} rows="15" placeholder='Translated text' value={translatedText}></textarea>
               </div>
@@ -94,6 +135,7 @@ export default function TranslateText() {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

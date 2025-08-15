@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import '../App.css';
 import Sidebar from '../Sidebar';
 import axios from 'axios';
+import { toast, ToastContainer } from "react-toastify";
 
 export default function SpeechToText() {
   const appURL = process.env.REACT_APP_API_URL;
@@ -10,6 +11,7 @@ export default function SpeechToText() {
   const [isLoading, setIsLoading] = useState(false);
   const [languages, setLanguages] = useState([]);
   const [fromLanguage, setFromLanguage] = useState("");
+  const [errors, setErrors] = useState({});
   const [toLanguage, setToLanguage] = useState("");
   const [fileToBeTranslated, setFileToBeTranslated] = useState(null);
 
@@ -18,8 +20,20 @@ export default function SpeechToText() {
   const [audioURL, setAudioURL] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  var validattionErrors = {
+    fromLanguageError: "",
+  }
 
   const startRecording = async () => {
+    if (fromLanguage == "") {
+      validattionErrors.fromLanguageError = "Please select";
+      setErrors(validattionErrors);
+      toast.error("Please select from langauge!");
+      return;
+    } else {
+      validattionErrors.fromLanguageError = null;
+      setErrors(validattionErrors);
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorderRef.current = new MediaRecorder(stream);
     mediaRecorderRef.current.ondataavailable = e => audioChunksRef.current.push(e.data);
@@ -28,6 +42,8 @@ export default function SpeechToText() {
       audioChunksRef.current = [];
       const audioUrl = URL.createObjectURL(audioBlob);
       setAudioURL(audioUrl);
+
+
 
       // Send audioBlob to backend
       const formData = new FormData();
@@ -84,6 +100,7 @@ export default function SpeechToText() {
                       ))}
                     </select>
                   </div>
+                  {errors.fromLanguageError && <span className='error'>{errors.fromLanguageError}</span>}
                   <div>
                     <button className='btn btn-danger' onClick={recording ? stopRecording : startRecording}>
                       {recording ? 'Stop' : 'Start'} Recording
@@ -103,17 +120,7 @@ export default function SpeechToText() {
               </div>
               <div className='col-sm-5 mb-2 mt-2 shadow-lg p-3 mb-5 bg-white rounded' >
                 <div className=''>
-                  <label>To Language</label>
-                  <div className=''>
-                    <select className='form-control mt-2 mb-2' value={toLanguage} onChange={(e) => setToLanguage(e.target.value)}>
-                      <option value="0">--Please select--</option>
-                      {Object.entries(languages).map(([code, name]) => (
-                        <option key={code} value={code}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+
                   <textarea style={{ width: '100%' }} rows="10" placeholder='Translated text' value={translatedText}></textarea>
 
                 </div>
@@ -122,6 +129,7 @@ export default function SpeechToText() {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

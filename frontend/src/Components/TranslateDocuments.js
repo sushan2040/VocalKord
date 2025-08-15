@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import '../App.css';
 import Sidebar from '../Sidebar';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
 
 function TranslateDocuments() {
   const appURL = process.env.REACT_APP_API_URL;
@@ -9,6 +10,7 @@ function TranslateDocuments() {
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [languages, setLanguages] = useState([]);
+  const [errors, setErrors] = useState({});
   const [fromLanguage, setFromLanguage] = useState("");
   const [toLanguage, setToLanguage] = useState("");
   const [fileToBeTranslated, setFileToBeTranslated] = useState(null);
@@ -38,6 +40,11 @@ function TranslateDocuments() {
   function downloadModels() {
     axios.get(appURL + "/api/download-models");
   }
+  var validattionErrors = {
+    fromLanguageError: "",
+    toLanguageError: "",
+    documentUploadError: ""
+  }
   useEffect(() => {
     getLanguages();
   })
@@ -46,6 +53,34 @@ function TranslateDocuments() {
     formData.append('file', fileToBeTranslated);
     formData.append('fromLanguage', fromLanguage);
     formData.append('toLanguage', toLanguage);
+
+    if (fromLanguage == "") {
+      validattionErrors.fromLanguageError = "Please Select"
+      setErrors(validattionErrors);
+      toast.error("Please select from language!");
+      return;
+    } else {
+      validattionErrors.fromLanguageError = null;
+      setErrors(validattionErrors);
+    }
+    if (toLanguage == "") {
+      validattionErrors.toLanguageError = "Please Select"
+      setErrors(validattionErrors);
+      toast.error("Please select to language!");
+      return;
+    } else {
+      validattionErrors.toLanguageError = null;
+      setErrors(validattionErrors);
+    }
+    if (fileToBeTranslated == null) {
+      validattionErrors.documentUploadError = "Please upload a document/file!";
+      setErrors(validattionErrors);
+      toast.error("Please upload a document/file!");
+      return;
+    } else {
+      validattionErrors.documentUploadError = null;
+      setErrors(validattionErrors);
+    }
 
     axios.post(appURL + "/api/translate-document", formData, {
       responseType: 'blob', // 👈 Important for file download
@@ -108,6 +143,7 @@ function TranslateDocuments() {
                         </option>
                       ))}
                     </select>
+                    {errors.fromLanguageError && <span className='error'>{errors.fromLanguageError}</span>}
 
                   </div>
                   <div className='mb-2 mt-2'>
@@ -115,6 +151,7 @@ function TranslateDocuments() {
                     <div className=''>
                       <input onChange={(e) => setFileToBeTranslated(e.target.files[0])} type='file' placeholder='Upload file' />
                     </div>
+                    {errors.documentUploadError && <span className='error'>{errors.documentUploadError}</span>}
                   </div>
                 </div>
               </div>
@@ -138,6 +175,8 @@ function TranslateDocuments() {
                       ))}
                     </select>
                   </div>
+                  {errors.toLanguageError && <span className='error'>{errors.toLanguageError}</span>}
+
 
                 </div>
               </div>
@@ -145,6 +184,7 @@ function TranslateDocuments() {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 }

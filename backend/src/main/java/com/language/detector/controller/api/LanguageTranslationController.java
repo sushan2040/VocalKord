@@ -6,8 +6,13 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -23,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,28 +58,74 @@ import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
 @RestController
 @RequestMapping(value = "/api")
 public class LanguageTranslationController {
-	
-	@Autowired
-	LanguageDetectorService languageDetectorService;
-	
-	@Autowired
-	TranscribeClient transcribeClient;
-	
-	@Autowired
-	S3Client client;
-	
-	@Autowired
-	TranslationService translationService;
 
-	@PostMapping(value = "/translate")
-	public ResponseEntity<String> fetchTranslatedText(@RequestParam("text") String text,
-			@RequestParam("fromLanguage") String fromLanguage,@RequestParam("toLanguage") String toLanguage){
-		return ResponseEntity.ok(translationService.translateText(text, fromLanguage, toLanguage));
-	}
-	@GetMapping("/get-languages")
+    private static final int DAILY_TRANSLATION_LIMIT = 10;
+    private final ConcurrentHashMap<String, AtomicInteger> translationCounts = new ConcurrentHashMap<>();
+    private volatile LocalDate lastResetDate = LocalDate.now();
+
+    @Autowired
+    LanguageDetectorService languageDetectorService;
+
+    @Autowired
+    TranscribeClient transcribeClient;
+
+    @Autowired
+    S3Client client;
+
+    @Autowired
+    TranslationService translationService;
+
+    // Reset translation counts daily at midnight
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void resetTranslationCounts() {
+        translationCounts.clear();
+        lastResetDate = LocalDate.now();
+        System.out.println("Translation counts reset at " + lastResetDate);
+    }
+
+    private boolean canTranslate(HttpServletRequest request) {
+        // Check if reset is needed (in case scheduler fails or during testing)
+        if (!LocalDate.now().equals(lastResetDate)) {
+            resetTranslationCounts();
+        }
+
+        String clientIp = getClientIp(request);
+        AtomicInteger count = translationCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
+
+        if (count.get() >= DAILY_TRANSLATION_LIMIT) {
+            return false;
+        }
+        count.incrementAndGet();
+        return true;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        } else {
+            // X-Forwarded-For may contain multiple IPs; take the first one
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        return ipAddress;
+    }
+
+    @PostMapping(value = "/translate")
+    public ResponseEntity<String> fetchTranslatedText(
+            @RequestParam("text") String text,
+            @RequestParam("fromLanguage") String fromLanguage,
+            @RequestParam("toLanguage") String toLanguage,
+            HttpServletRequest request) {
+        if (!canTranslate(request)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Daily translation limit of " + DAILY_TRANSLATION_LIMIT + " reached.");
+        }
+        return ResponseEntity.ok(translationService.translateText(text, fromLanguage, toLanguage));
+    }
+
+    @GetMapping("/get-languages")
     public ResponseEntity<Map<String, String>> getLanguages() {
         Map<String, String> languages = new LinkedHashMap<>(); // Keeps insertion order
-
         languages.put("af", "Afrikaans");
         languages.put("am", "Amharic");
         languages.put("ar", "Arabic");
@@ -141,219 +193,217 @@ public class LanguageTranslationController {
         languages.put("ur", "Urdu");
         languages.put("vi", "Vietnamese");
         languages.put("zh", "Chinese");
-
         return ResponseEntity.ok(languages);
     }
-	 @Async
-	@GetMapping(value = "/download-models")
-	public void downloadModels(){
-		 // Your Python script execution or model download logic here
-	        System.out.println("🔄 Starting model preloading in background thread...");
-		MarianModelPreloader modelPreloader=new MarianModelPreloader();
-		modelPreloader.preloadModels();
-	}
-	 @PostMapping("/translate-document")
-	 public ResponseEntity<byte[]> translateDocument(
-	         @RequestPart("file") MultipartFile file,
-	         @RequestParam("fromLanguage") String fromLanguage,
-	         @RequestParam("toLanguage") String toLanguage
-	 ) {
-	     String originalFilename = file.getOriginalFilename();
-	     String extension = getFileExtension(originalFilename).toLowerCase();
-	     String extractedText;
 
-	     try {
-	         // ✅ 1. Extract text based on file type
-	         switch (extension) {
-	             case "txt":
-	                 extractedText = new String(file.getBytes(), StandardCharsets.UTF_8);
-	                 break;
-	             case "pdf":
-	                 try (PDDocument doc = PDDocument.load(file.getInputStream())) {
-	                     extractedText = new PDFTextStripper().getText(doc);
-	                 }
-	                 break;
-	             case "docx":
-	                 try (XWPFDocument docx = new XWPFDocument(file.getInputStream())) {
-	                     extractedText = new XWPFWordExtractor(docx).getText();
-	                 }
-	                 break;
-	             default:
-	                 return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();
-	         }
+    @Async
+    @GetMapping(value = "/download-models")
+    public void downloadModels() {
+        System.out.println("🔄 Starting model preloading in background thread...");
+        MarianModelPreloader modelPreloader = new MarianModelPreloader();
+        modelPreloader.preloadModels();
+    }
 
-	         // ✅ 2. Validate language inputs
-	         if (fromLanguage == null || fromLanguage.isBlank() ||
-	             toLanguage == null || toLanguage.isBlank()) {
-	             return ResponseEntity.badRequest().body("Language codes cannot be empty".getBytes());
-	         }
+    @PostMapping("/translate-document")
+    public ResponseEntity<byte[]> translateDocument(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam("fromLanguage") String fromLanguage,
+            @RequestParam("toLanguage") String toLanguage,
+            HttpServletRequest request) {
+        if (!canTranslate(request)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(("Daily translation limit of " + DAILY_TRANSLATION_LIMIT + " reached.").getBytes());
+        }
 
-	         // ✅ 3. Translate text
-	         String translatedText = translationService.translateText(extractedText, fromLanguage, toLanguage);
+        String originalFilename = file.getOriginalFilename();
+        String extension = getFileExtension(originalFilename).toLowerCase();
+        String extractedText;
 
-	         // ✅ 4. Generate output file
-	         byte[] translatedFile;
-	         MediaType mediaType;
+        try {
+            // Extract text based on file type
+            switch (extension) {
+                case "txt":
+                    extractedText = new String(file.getBytes(), StandardCharsets.UTF_8);
+                    break;
+                case "pdf":
+                    try (PDDocument doc = PDDocument.load(file.getInputStream())) {
+                        extractedText = new PDFTextStripper().getText(doc);
+                    }
+                    break;
+                case "docx":
+                    try (XWPFDocument docx = new XWPFDocument(file.getInputStream())) {
+                        extractedText = new XWPFWordExtractor(docx).getText();
+                    }
+                    break;
+                default:
+                    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build();
+            }
 
-	         switch (extension) {
-	             case "txt":
-	                 translatedFile = translatedText.getBytes(StandardCharsets.UTF_8);
-	                 mediaType = MediaType.TEXT_PLAIN;
-	                 break;
+            // Validate language inputs
+            if (fromLanguage == null || fromLanguage.isBlank() ||
+                toLanguage == null || toLanguage.isBlank()) {
+                return ResponseEntity.badRequest().body("Language codes cannot be empty".getBytes());
+            }
 
-	             case "pdf":
-	            	 try (ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
-		                      PDDocument doc = new PDDocument()) {
-	            		    PDPage page = new PDPage();
-	            		    doc.addPage(page);
+            // Translate text
+            String translatedText = translationService.translateText(extractedText, fromLanguage, toLanguage);
 
-	            		    // Load a Unicode font (make sure this file exists in your resources)
-	            		    InputStream fontStream = new FileInputStream("src/main/resources/NotoSans-VariableFont_wdth,wght.ttf");
-	            		    PDType0Font font = PDType0Font.load(doc, fontStream);
+            // Generate output file
+            byte[] translatedFile;
+            MediaType mediaType;
 
-	            		    try (PDPageContentStream contentStream = new PDPageContentStream(doc, page)) {
-	            		        contentStream.beginText();
-	            		        contentStream.setFont(font, 12);
-	            		        contentStream.setLeading(14.5f); // spacing between lines
-	            		        contentStream.newLineAtOffset(25, 700); // starting position from top-left
+            switch (extension) {
+                case "txt":
+                    translatedFile = translatedText.getBytes(StandardCharsets.UTF_8);
+                    mediaType = MediaType.TEXT_PLAIN;
+                    break;
+                case "pdf":
+                    try (ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
+                         PDDocument doc = new PDDocument()) {
+                        PDPage page = new PDPage();
+                        doc.addPage(page);
 
-	            		        String[] lines = translatedText.split("\\R"); // handles \n, \r\n, \r
-	            		        for (String line : lines) {
-	            		            contentStream.showText(line);
-	            		            contentStream.newLine();
-	            		        }
-	            		        System.out.println("Translated text length: " + translatedText.length());
-	            		        System.out.println("Translated text preview: " + translatedText.substring(0, Math.min(100, translatedText.length())));
+                        // Load a Unicode font
+                        InputStream fontStream = new FileInputStream("src/main/resources/NotoSans-VariableFont_wdth,wght.ttf");
+                        PDType0Font font = PDType0Font.load(doc, fontStream);
 
-	            		        contentStream.endText();
-	            		    }
+                        try (PDPageContentStream contentStream = new PDPageContentStream(doc, page)) {
+                            contentStream.beginText();
+                            contentStream.setFont(font, 12);
+                            contentStream.setLeading(14.5f);
+                            contentStream.newLineAtOffset(25, 700);
 
-	            		    doc.save(pdfOut);
-	                     translatedFile = pdfOut.toByteArray();
-	                 }
-	                 mediaType = MediaType.APPLICATION_PDF;
-	                 break;
+                            String[] lines = translatedText.split("\\R");
+                            for (String line : lines) {
+                                contentStream.showText(line);
+                                contentStream.newLine();
+                            }
+                            System.out.println("Translated text length: " + translatedText.length());
+                            System.out.println("Translated text preview: " + translatedText.substring(0, Math.min(100, translatedText.length())));
 
-	             case "docx":
-	                 try (ByteArrayOutputStream docxOut = new ByteArrayOutputStream()) {
-	                     XWPFDocument newDoc = new XWPFDocument();
-	                     newDoc.createParagraph().createRun().setText(translatedText);
-	                     newDoc.write(docxOut);
-	                     translatedFile = docxOut.toByteArray();
-	                 }
-	                 mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-	                 break;
+                            contentStream.endText();
+                        }
 
-	             default:
-	                 return ResponseEntity.badRequest().build();
-	         }
+                        doc.save(pdfOut);
+                        translatedFile = pdfOut.toByteArray();
+                    }
+                    mediaType = MediaType.APPLICATION_PDF;
+                    break;
+                case "docx":
+                    try (ByteArrayOutputStream docxOut = new ByteArrayOutputStream()) {
+                        XWPFDocument newDoc = new XWPFDocument();
+                        newDoc.createParagraph().createRun().setText(translatedText);
+                        newDoc.write(docxOut);
+                        translatedFile = docxOut.toByteArray();
+                    }
+                    mediaType = MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+                    break;
+                default:
+                    return ResponseEntity.badRequest().build();
+            }
 
-	         // ✅ 5. Build response with proper headers
-	         HttpHeaders headers = new HttpHeaders();
-	         headers.setContentType(mediaType);
-	         headers.setContentDisposition(ContentDisposition.attachment()
-	                 .filename("translated-" + originalFilename)
-	                 .build());
+            // Build response with proper headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(mediaType);
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename("translated-" + originalFilename)
+                    .build());
 
-	         return new ResponseEntity<>(translatedFile, headers, HttpStatus.OK);
+            return new ResponseEntity<>(translatedFile, headers, HttpStatus.OK);
 
-	     } catch (Exception e) {
-	         e.printStackTrace();
-	         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-	     }
-	 }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
-	 private String getFileExtension(String filename) {
-	     return filename.substring(filename.lastIndexOf('.') + 1);
-	 }
-	 
-	 @PostMapping("/transcribe")
-	 public ResponseEntity<TranscriptionResponse> transcribeAudio(
-	         @RequestParam("file") MultipartFile file,
-	         @RequestParam("fromLanguage") String fromLanguage) {
+    private String getFileExtension(String filename) {
+        return filename.substring(filename.lastIndexOf('.') + 1);
+    }
 
-	     String bucketName = "s3audioinput"; // Input S3 bucket name
-	     String outputBucketName = "s3audiooutput"; // Output S3 bucket (optional)
-	     String fileName = "recordings/" + System.currentTimeMillis() + "-" + file.getOriginalFilename();
+    @PostMapping("/transcribe")
+    public ResponseEntity<TranscriptionResponse> transcribeAudio(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("fromLanguage") String fromLanguage) {
 
-	     try {
-	         // 1. Upload the file to S3
-	         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-	                 .bucket(bucketName)
-	                 .key(fileName)
-	                 .contentType(file.getContentType())
-	                 .build();
+        String bucketName = "s3audioinput";
+        String outputBucketName = "s3audiooutput";
+        String fileName = "recordings/" + System.currentTimeMillis() + "-" + file.getOriginalFilename();
 
-	         client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
-	         System.out.println("✅ File uploaded to S3: " + fileName);
+        try {
+            // Upload the file to S3
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .contentType(file.getContentType())
+                    .build();
 
-	         // 2. Prepare the Transcribe Job
-	         String mediaFormat = fileName.substring(fileName.lastIndexOf('.') + 1); // e.g. mp3, wav, etc.
-	         String s3Uri = "s3://" + bucketName + "/" + fileName;
-	         String jobName = "job-" + System.currentTimeMillis();
+            client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+            System.out.println("✅ File uploaded to S3: " + fileName);
 
-	         StartTranscriptionJobRequest jobRequest = StartTranscriptionJobRequest.builder()
-	                 .transcriptionJobName(jobName)
-	                 .languageCode(fromLanguage+"-US") // e.g. "en-US", "hi-IN"
-	                 .mediaFormat(mediaFormat)
-	                 .media(Media.builder().mediaFileUri(s3Uri).build())
-	                 .outputBucketName(outputBucketName) // optional
-	                 .build();
+            // Prepare the Transcribe Job
+            String mediaFormat = fileName.substring(fileName.lastIndexOf('.') + 1);
+            String s3Uri = "s3://" + bucketName + "/" + fileName;
+            String jobName = "job-" + System.currentTimeMillis();
 
-	         transcribeClient.startTranscriptionJob(jobRequest);
-	         System.out.println("🔁 Transcription job started: " + jobName);
+            StartTranscriptionJobRequest jobRequest = StartTranscriptionJobRequest.builder()
+                    .transcriptionJobName(jobName)
+                    .languageCode(fromLanguage + "-US")
+                    .mediaFormat(mediaFormat)
+                    .media(Media.builder().mediaFileUri(s3Uri).build())
+                    .outputBucketName(outputBucketName)
+                    .build();
 
-	         // 3. Poll for completion
-	         TranscriptionJob transcriptionJob;
-	         do {
-	             Thread.sleep(3000); // Wait for a few seconds
-	             GetTranscriptionJobResponse getJobResponse = transcribeClient.getTranscriptionJob(
-	                     GetTranscriptionJobRequest.builder().transcriptionJobName(jobName).build()
-	             );
-	             transcriptionJob = getJobResponse.transcriptionJob();
-	             System.out.println("⏳ Job status: " + transcriptionJob.transcriptionJobStatus());
-	         } while (transcriptionJob.transcriptionJobStatus() == TranscriptionJobStatus.IN_PROGRESS);
+            transcribeClient.startTranscriptionJob(jobRequest);
+            System.out.println("🔁 Transcription job started: " + jobName);
 
-	         // 4. Handle result
-	         if (transcriptionJob.transcriptionJobStatus() == TranscriptionJobStatus.COMPLETED) {
-	             String transcriptUrl = transcriptionJob.transcript().transcriptFileUri();
-	             System.out.println("✅ Transcription completed: " + transcriptUrl);
-	            try {
-	                 GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-	                         .bucket(outputBucketName)
-	                         .key(transcriptUrl.split("/")[transcriptUrl.split("/").length-1])
-	                         .build();
+            // Poll for completion
+            TranscriptionJob transcriptionJob;
+            do {
+                Thread.sleep(3000);
+                GetTranscriptionJobResponse getJobResponse = transcribeClient.getTranscriptionJob(
+                        GetTranscriptionJobRequest.builder().transcriptionJobName(jobName).build()
+                );
+                transcriptionJob = getJobResponse.transcriptionJob();
+                System.out.println("⏳ Job status: " + transcriptionJob.transcriptionJobStatus());
+            } while (transcriptionJob.transcriptionJobStatus() == TranscriptionJobStatus.IN_PROGRESS);
 
-	                 try (BufferedReader reader = new BufferedReader(
-	                         new InputStreamReader(client.getObject(getObjectRequest), StandardCharsets.UTF_8))) {
+            // Handle result
+            if (transcriptionJob.transcriptionJobStatus() == TranscriptionJobStatus.COMPLETED) {
+                String transcriptUrl = transcriptionJob.transcript().transcriptFileUri();
+                System.out.println("✅ Transcription completed: " + transcriptUrl);
+                try {
+                    GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                            .bucket(outputBucketName)
+                            .key(transcriptUrl.split("/")[transcriptUrl.split("/").length - 1])
+                            .build();
 
-	                     StringBuilder sb = new StringBuilder();
-	                     String line;
-	                     while ((line = reader.readLine()) != null) {
-	                         sb.append(line).append("\n");
-	                     }
-	                     ObjectMapper mapper=new ObjectMapper();
-	                     TranscriptionResponse response=mapper.readValue(sb.toString(),TranscriptionResponse.class);
-	                     return ResponseEntity.status(HttpStatus.OK).body(response);
-	                 }
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(client.getObject(getObjectRequest), StandardCharsets.UTF_8))) {
 
-	             } catch (Exception e) {
-	                 e.printStackTrace();
-	                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new TranscriptionResponse());
-	             }
-	         } else {
-	             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                     .body(new TranscriptionResponse());
-	         }
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            sb.append(line).append("\n");
+                        }
+                        ObjectMapper mapper = new ObjectMapper();
+                        TranscriptionResponse response = mapper.readValue(sb.toString(), TranscriptionResponse.class);
+                        return ResponseEntity.status(HttpStatus.OK).body(response);
+                    }
 
-	     } catch (Exception e) {
-	         e.printStackTrace();
-	         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                 .body(new TranscriptionResponse());
-	     }
-	 }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new TranscriptionResponse());
+                }
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new TranscriptionResponse());
+            }
 
-
-
-
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new TranscriptionResponse());
+        }
+    }
 }

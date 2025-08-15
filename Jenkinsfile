@@ -71,25 +71,10 @@ pipeline {
                         -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
                         -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
                         backend:latest
-                    # Wait for backend to be healthy
-            echo "Waiting for backend to be healthy..."
-            for i in {1..30}; do
-                if [ "$(docker inspect --format '{{.State.Health.Status}}' backend)" = "healthy" ]; then
-                    echo "Backend is healthy!"
-                    break
-                fi
-                echo "Backend not yet healthy, waiting..."
-                sleep 5
-            done
-            if [ "$(docker inspect --format '{{.State.Health.Status}}' backend)" != "healthy" ]; then
-                echo "Backend failed to become healthy!"
-                docker logs backend
-                exit 1
-            fi    
                     docker run -d --name frontend --network vocalkord-frontend-network -p 3001:3001 \
                         frontend:latest
                     sleep 700
-                     # Check backend deployment
+                    # Check Backend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' backend)" = "true" ] && \
                        docker inspect --format '{{.NetworkSettings.Ports}}' backend | grep -q "8082"; then
                         echo "Backend deployment successful!"

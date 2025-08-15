@@ -41,7 +41,7 @@ pipeline {
                             cd frontend
                             rm -rf node_modules package-lock.json
                             npm install --legacy-peer-deps
-                            npm run build || true
+                            npm run build --no-cache || true
                             if [ -d "./build" ]; then
                                 echo "Build directory exists, building frontend image..."
                             else

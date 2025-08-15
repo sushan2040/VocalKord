@@ -86,7 +86,7 @@ pipeline {
                 docker logs backend
                 exit 1
             fi    
-                    docker run -d --name frontend --network frontend-network -p 3000:80 \
+                    docker run -d --name frontend --network frontend-network -p 3001:3001 \
                         frontend:latest
                     sleep 700
                      # Check backend deployment
@@ -99,10 +99,10 @@ pipeline {
                     fi
                     # Check frontend deployment
                     if [ "$(docker inspect --format '{{.State.Running}}' frontend)" = "true" ] && \
-                       docker inspect --format '{{.NetworkSettings.Ports}}' frontend | grep -q "80"; then
+                       docker inspect --format '{{.NetworkSettings.Ports}}' frontend | grep -q "3001"; then
                         echo "Frontend deployment successful!"
                     else
-                        echo "Frontend failed to start or port 80 not mapped"
+                        echo "Frontend failed to start or port 3001 not mapped"
                         exit 1
                     fi
                 '''

@@ -12,6 +12,8 @@ public class Cors implements WebMvcConfigurer {
 	registry.addMapping("/**")
 	.allowedOrigins("http://localhost:3000",
 	"http://31.97.110.118:90",
+	"http://31.97.110.118:3001",
+	"http://31.97.110.118:3001/ecommerce",
 	 "http:31.97.110.118:90")
 	.allowedMethods("GET", "POST", "PUT", "DELETE")
 	.allowedHeaders("*")

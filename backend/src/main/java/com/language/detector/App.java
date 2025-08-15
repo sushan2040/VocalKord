@@ -38,7 +38,8 @@ public class App extends SpringBootServletInitializer
 	private static final org.slf4j.Logger LOGGER=LoggerFactory.getLogger(App.class);
 	
 		public static void main(String[] args) {
-			SpringApplication.run(App.class, args);
+			new SpringApplicationBuilder(App.class).sources(App.class)
+					.run(args);
 
 			LOGGER.info(":: Language Detector Web ::        (v1.1.RELEASE)");
 			LOGGER.info(":: JAVA version       ::        (" + System.getProperty("java.version") + ")");

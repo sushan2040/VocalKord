@@ -8,7 +8,7 @@ COPY . .
 # Inject REACT_APP_API_URL at build time if needed
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
-RUN npm run build
+RUN npm run build --no-cache
 
 # Serve stage
 FROM node:20-alpine

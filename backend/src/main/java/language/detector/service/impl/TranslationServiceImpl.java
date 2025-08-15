@@ -19,13 +19,12 @@ public class TranslationServiceImpl implements TranslationService {
 	 private final TranslateClient translateClient;
 
 		@Autowired
-	    public TranslationServiceImpl(@Value("${aws.accessKeyId}") String accessKey,
-	                              @Value("${aws.secretAccessKey}") String secretKey,
-	                              @Value("${aws.region}") String region) {
+	    public TranslationServiceImpl(@Value("${vocalKord.aws.accessKey}") String accessKey,
+	                              @Value("${vocalKord.aws.secretAccessKey}") String secretKey) {
 	        AwsCredentials awsCredentials = AwsBasicCredentials.create(accessKey, secretKey);
 	        this.translateClient = TranslateClient.builder()
 	                .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
-	                .region(Region.of(region))
+	                .region(Region.US_WEST_2)
 	                .build();
 	    }
 	

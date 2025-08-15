@@ -17,6 +17,7 @@ public class TranslationServiceImpl implements TranslationService {
 
 	 private final TranslateClient translateClient;
 
+		@Autowired
 	    public TranslationServiceImpl(@Value("${aws.accessKeyId}") String accessKey,
 	                              @Value("${aws.secretAccessKey}") String secretKey,
 	                              @Value("${aws.region}") String region) {

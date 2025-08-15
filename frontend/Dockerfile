@@ -2,6 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 RUN rm -rf node_modules package-lock.json
+COPY package*.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
 # Inject REACT_APP_API_URL at build time if needed

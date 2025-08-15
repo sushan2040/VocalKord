@@ -63,10 +63,10 @@ pipeline {
                 sh '''
                 docker build -t backend:latest ./backend
                     docker build -t frontend:latest ./frontend
-                    docker network create frontend-network || true
+                    docker network create vocalkord-frontend-network || true
                     docker stop backend frontend || true
                     docker rm backend frontend || true
-                    docker run -d --name backend --network frontend-network -p 8082:8082 \
+                    docker run -d --name backend --network vocalkord-frontend-network -p 8082:8082 \
                     -e SERVER_PORT="$SERVER_PORT" \
                         -e AWS_S3_ACCESS_KEY="$AWS_S3_ACCESS_KEY" \
                         -e AWS_S3_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY" \
@@ -86,7 +86,7 @@ pipeline {
                 docker logs backend
                 exit 1
             fi    
-                    docker run -d --name frontend --network frontend-network -p 3001:3001 \
+                    docker run -d --name frontend --network vocalkord-frontend-network -p 3001:3001 \
                         frontend:latest
                     sleep 700
                      # Check backend deployment

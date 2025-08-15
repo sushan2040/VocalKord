@@ -90,8 +90,9 @@ public class LanguageTranslationController {
         }
 
         String clientIp = getClientIp(request);
+        System.out.println("Client IP :"+clientIp+" made request for translation ");
         AtomicInteger count = translationCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0));
-
+        System.out.println("Client IP count is :"+count+"");
         if (count.get() >= DAILY_TRANSLATION_LIMIT) {
             return false;
         }

@@ -40,6 +40,7 @@ pipeline {
                         sh '''
                             cd frontend
                             rm -rf node_modules package-lock.json
+                            npm install react-toastify --legacy-peer-deps
                             npm install --legacy-peer-deps
                             npm cache clean --force
                             npm run build --no-cache || true

@@ -39,6 +39,7 @@ pipeline {
                     docker.image('node:20-alpine').inside('-u root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""') {
                         sh '''
                             cd frontend
+                            rm -rf node_modules package-lock.json
                             npm install --legacy-peer-deps
                             npm run build || true
                             if [ -d "./build" ]; then

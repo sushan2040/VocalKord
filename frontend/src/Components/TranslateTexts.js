@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Sidebar from "../Sidebar";
 
 export default function TranslateText() {
-  const appURL = "http://localhost:8082";
+  const appURL = process.env.REACT_APP_API_URL;
   const toBeTranslateText = useRef("");
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);

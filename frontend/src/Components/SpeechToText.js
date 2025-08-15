@@ -4,7 +4,7 @@ import Sidebar from '../Sidebar';
 import axios from 'axios';
 
 export default function SpeechToText() {
-  const appURL = "http://localhost:8082";
+  const appURL = process.env.REACT_APP_API_URL;
   const toBeTranslateText = useRef("");
   const [translatedText, setTranslatedText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
